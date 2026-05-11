@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Field Log"/>
+<meta name="theme-color" content="#080808"/>
+<title>Field Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #080808; color: #fff; font-family: 'Share Tech Mono', monospace; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  button { font-family: 'Share Tech Mono', monospace; }
+  #app { padding-bottom: 56px; }
+  .header { padding: 22px 16px 14px; border-bottom: 1px solid #141414; display: flex; align-items: flex-end; justify-content: space-between; }
+  .header-title { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: .08em; color: #f0f0f0; text-transform: uppercase; line-height: 1; }
+  .header-sub { font-size: 11px; color: #333; letter-spacing: 2px; margin-top: 3px; }
+  .log-badge { font-size: 10px; color: #2ec4b6; letter-spacing: 1.5px; border: 1px solid #1a3a38; border-radius: 6px; padding: 4px 8px; background: #0a1f1e; }
+  .filter-bar { padding: 10px 12px; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-btn { background: #111; color: #555; border: 1px solid #1e1e1e; border-radius: 20px; padding: 5px 12px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; letter-spacing: 1.2px; transition: all .15s; flex-shrink: 0; }
+  .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
+  .ruck-tip { margin: 4px 12px 8px; background: #0b160b; border: 1px solid #1a3020; border-radius: 10px; padding: 10px 14px; }
+  .ruck-tip-title { font-size: 11px; color: #4a7c4a; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .ruck-tip-body { font-size: 11px; color: #3a5a3a; line-height: 1.5; }
+  .card-list { padding: 4px 12px 0; display: flex; flex-direction: column; gap: 7px; }
+  .card { border-radius: 13px; overflow: hidden; background: #0f0f0f; border: 1px solid #181818; transition: border-color .2s; }
+  .card.open { border-color: #2a2a2a; }
+  .card-header { width: 100%; background: none; border: none; padding: 13px 14px; cursor: pointer; text-align: left; display: flex; align-items: flex-start; gap: 10px; }
+  .card-stripe { width: 3px; height: 44px; border-radius: 2px; flex-shrink: 0; margin-top: 2px; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
+  .card-name { font-size: 15px; font-weight: 700; color: #f0f0f0; font-family: 'Barlow Condensed', sans-serif; letter-spacing: .04em; text-transform: uppercase; }
+  .card-type-badge { font-size: 9px; font-weight: 700; border-radius: 4px; padding: 2px 6px; letter-spacing: 1px; }
+  .card-tags { font-size: 11px; margin-left: auto; }
+  .card-desc { font-size: 11px; color: #555; line-height: 1.4; }
+  .card-chevron-area { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+  .card-dot { width: 6px; height: 6px; border-radius: 50%; background: #2ec4b6; }
+  .card-chevron { color: #333; font-size: 14px; }
+  .card-body { padding: 0 14px 16px; border-top: 1px solid #181818; }
+  .card-notes { font-size: 11px; color: #4a4a4a; font-style: italic; padding: 8px 0 2px; line-height: 1.5; }
+  .tracker { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+  .field-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .field-lbl { font-size: 13px; color: #999; }
+  .num-input { width: 62px; background: #161616; border: 1px solid #2a2a2a; border-radius: 7px; color: #fff; font-size: 15px; padding: 7px 0; text-align: center; font-family: 'Share Tech Mono', monospace; }
+  .unit-lbl { font-size: 11px; color: #555; }
+  .col-hdr { font-size: 9px; color: #444; letter-spacing: 1.5px; display: flex; align-items: flex-end; }
+  .logged-msg { text-align: center; font-size: 11px; color: #2ec4b6; letter-spacing: 2px; }
+  .btn-primary { flex: 1; border: none; border-radius: 9px; padding: 12px; font-weight: 700; font-size: 14px; cursor: pointer; letter-spacing: 1px; }
+  .btn-ghost { flex-shrink: 0; width: 46px; background: #141414; color: #555; border: 1px solid #222; border-radius: 9px; font-size: 18px; cursor: pointer; }
+  .btn-row { display: flex; gap: 8px; }
+  .timer-display { text-align: center; padding: 18px 0 8px; }
+  .timer-digits { font-size: 54px; letter-spacing: 2px; }
+  .rounds-clock { text-align: center; margin-bottom: 8px; }
+  .rounds-cap { font-size: 11px; color: #666; letter-spacing: 2px; }
+  .rounds-time { font-size: 36px; }
+  .rounds-grid { display: flex; gap: 12px; }
+  .rounds-col { flex: 1; }
+  .counter-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .counter-btn { width: 38px; height: 38px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #aaa; font-size: 20px; cursor: pointer; }
+  .counter-val { font-size: 38px; flex: 1; text-align: center; color: #eee; }
+  .sets-grid { display: grid; grid-template-columns: 28px 1fr 1fr 38px; gap: 6px 8px; margin-bottom: 4px; }
+  .set-num { font-size: 12px; color: #555; display: flex; align-items: center; justify-content: center; }
+  .set-done-btn { border-radius: 7px; font-size: 15px; padding: 0; cursor: pointer; }
+  .ruck-setup { background: #0e1a0e; border: 1px solid #1e3a1e; border-radius: 10px; padding: 12px 14px; margin-bottom: 4px; }
+  .ruck-setup-title { font-size: 11px; color: #4a7c4a; letter-spacing: 2px; margin-bottom: 8px; }
+  .ruck-no-gear { font-size: 10px; color: #3a5a3a; margin-top: 4px; }
+  .history-btn { margin-top: 14px; width: 100%; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; color: #444; font-size: 11px; padding: 9px; cursor: pointer; letter-spacing: 1.5px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 100; display: flex; align-items: flex-end; }
+  .modal-sheet { background: #0f0f0f; border: 1px solid #222; border-radius: 16px 16px 0 0; width: 100%; max-height: 70vh; overflow-y: auto; padding: 20px 16px 32px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .modal-title { font-size: 16px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; text-transform: uppercase; color: #f0f0f0; letter-spacing: .05em; }
+  .modal-subtitle { font-size: 10px; letter-spacing: 2px; margin-top: 2px; }
+  .modal-close { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #666; font-size: 18px; width: 36px; height: 36px; cursor: pointer; }
+  .modal-empty { text-align: center; padding: 32px 0; color: #333; font-size: 12px; }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-entry { background: #141414; border: 1px solid #1e1e1e; border-radius: 10px; padding: 12px 14px; }
+  .entry-date { font-size: 10px; color: #444; margin-bottom: 8px; }
+  .entry-time { font-size: 28px; }
+  .entry-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .entry-tag { font-size: 11px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 3px 8px; color: #aaa; }
+  .entry-dist { font-size: 13px; color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const WORKOUTS = [
+  { id:1,  name:"Push & Pull Ladder",     type:"For Time", tags:["gym"],           desc:"10-8-6-4-2: Bench Press + Bent-over Rows",                      track:"time",   moves:[{n:"Bench Press",u:"lb",dw:115},{n:"Bent-over Row",u:"lb",dw:115}] },
+  { id:2,  name:"Burpee Mile",            type:"For Time", tags:["outdoor","gym"], desc:"EMOM: 5 burpees, then run 400m x 4",                            track:"time",   moves:[{n:"Burpees (5 each min)"},{n:"400m Run x 4"}], notes:"Can sub treadmill" },
+  { id:3,  name:"Kettlebell Chaos",       type:"For Time", tags:["gym"],           desc:"4 rounds: 12 KB Swings, 10 Goblet Squats, 8 KB Push Press/arm", track:"time",   moves:[{n:"KB Swings",u:"lb",dw:53},{n:"Goblet Squat",u:"lb",dw:53},{n:"KB Push Press",u:"lb",dw:35}] },
+  { id:4,  name:"Track Intervals",        type:"For Time", tags:["outdoor"],       desc:"5 x 400m sprints, 90 sec rest between",                         track:"time",   moves:[{n:"400m Sprint x 5"}], notes:"Log total time or track best split" },
+  { id:5,  name:"Hang & Hinge",           type:"For Time", tags:["gym"],           desc:"21-15-9: Hang Power Cleans + Romanian Deadlifts",               track:"time",   moves:[{n:"Hang Power Clean",u:"lb",dw:95},{n:"Romanian Deadlift",u:"lb",dw:115}] },
+  { id:6,  name:"Park Circuit",           type:"For Time", tags:["outdoor"],       desc:"3 rounds: 200m run, 15 push-ups, 20 squats, 10 jump lunges",    track:"time",   moves:[{n:"200m Run"},{n:"Push-ups"},{n:"Air Squats"},{n:"Jump Lunges"}], notes:"Zero equipment needed" },
+  { id:7,  name:"Upper Body Blitz",       type:"AMRAP",    tags:["gym"],           desc:"AMRAP 15: 8 push-ups, 8 ring rows, 6 dips, 6 DB curls",        track:"rounds", moves:[{n:"Push-ups"},{n:"Ring Rows"},{n:"Dips"},{n:"DB Curls",u:"lb",dw:30}], dur:15 },
+  { id:8,  name:"Leg Day AMRAP",          type:"AMRAP",    tags:["gym"],           desc:"AMRAP 20: 10 box jumps, 12 wall balls, 14 walking lunges",      track:"rounds", moves:[{n:"Box Jumps"},{n:"Wall Balls",u:"lb",dw:20},{n:"Walking Lunges"}], dur:20 },
+  { id:9,  name:"Outdoor AMRAP",          type:"AMRAP",    tags:["outdoor"],       desc:"AMRAP 12: Sprint 100m, 10 squat jumps, 10 push-ups",            track:"rounds", moves:[{n:"Sprint 100m"},{n:"Squat Jumps"},{n:"Push-ups"}], dur:12, notes:"Works in any open space" },
+  { id:10, name:"Power EMOM",             type:"EMOM",     tags:["gym"],           desc:"EMOM 16 - A) 5 power snatches  B) 10 box jumps",               track:"rounds", moves:[{n:"Power Snatch (A)",u:"lb",dw:75},{n:"Box Jumps (B)"}], dur:16 },
+  { id:11, name:"Core EMOM",              type:"EMOM",     tags:["gym","outdoor"], desc:"EMOM 10 - A) 10 toes-to-bar  B) 20 hollow rocks",              track:"rounds", moves:[{n:"Toes-to-bar (A)"},{n:"Hollow Rocks (B)"}], dur:10, notes:"Sub leg raises if no bar" },
+  { id:12, name:"Front Squat Build",      type:"Strength", tags:["gym"],           desc:"5 sets - build to heavy 3 rep Front Squat",                    track:"weight", moves:[{n:"Front Squat",u:"lb",dw:115}], sets:[5,3,3,3,3] },
+  { id:13, name:"Push Press Wave",        type:"Strength", tags:["gym"],           desc:"Wave loading: 5-3-1, rest 2 min, repeat",                      track:"weight", moves:[{n:"Push Press",u:"lb",dw:95}], sets:[5,3,1,5,3,1] },
+  { id:14, name:"Strict Press 4x6",       type:"Strength", tags:["gym"],           desc:"4 sets of 6 strict press - no legs",                           track:"weight", moves:[{n:"Strict Press",u:"lb",dw:75}], sets:[6,6,6,6] },
+  { id:15, name:"Weighted Pull-up Ladder",type:"Strength", tags:["gym"],           desc:"Build across 5 sets: 5 weighted pull-ups",                     track:"weight", moves:[{n:"Weighted Pull-up",u:"lb",dw:10}], sets:[5,5,5,5,5], notes:"Use belt or hold DB" },
+  { id:16, name:"Ruck Intro",             type:"Ruck",     tags:["outdoor","ruck"],desc:"2 mile easy ruck - posture and pace focus",                    track:"ruck",   moves:[{n:"Ruck 2 miles"}], notes:"Start 20-30 lb. Pace should feel conversational." },
+  { id:17, name:"Ruck & Carry",           type:"Ruck",     tags:["outdoor","ruck"],desc:"4 miles - stop every mile for 20 weighted squats",             track:"ruck",   moves:[{n:"Ruck 4 miles"}], notes:"Use pack weight for squats. Legs + cardio." },
+  { id:18, name:"Ruck Sprint Intervals",  type:"Ruck",     tags:["outdoor","ruck"],desc:"6 x 200m fast ruck, 200m slow walk recovery",                 track:"ruck",   moves:[{n:"200m Fast Ruck x 6"}], notes:"Intermediate. 80% effort with pack on." },
+];
+const COLORS = { "For Time":"#e63946","AMRAP":"#2ec4b6","EMOM":"#f4a261","Strength":"#4895ef","Ruck":"#6a994e" };
+const TAG_ICONS = { gym:"🏋️",outdoor:"🌿",ruck:"🎒" };
+const FILTERS = ["All","For Time","AMRAP","EMOM","Strength","Ruck","🌿 Outdoor"];
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+const todayStr = () => new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+let state = { filter:"All", openId:null, history:{}, timers:{}, weights:{}, rounds:{}, sets:{}, ruckData:{}, historyModal:null };
+function loadHistory() { try { const d=localStorage.getItem("fieldlog-v1"); if(d) state.history=JSON.parse(d); } catch(_){} }
+function saveHistory() { try { localStorage.setItem("fieldlog-v1",JSON.stringify(state.history)); } catch(_){} }
+function appendHistory(wid,entry) {
+  if(!state.history[wid]) state.history[wid]=[];
+  const today=todayStr();
+  const idx=state.history[wid].findIndex(e=>e.date===today);
+  if(idx>=0) state.history[wid][idx]=entry; else state.history[wid].push(entry);
+  saveHistory();
+}
+function getTimer(wid) { if(!state.timers[wid]) state.timers[wid]={elapsed:0,running:false,intervalId:null,locked:false,finalTime:0}; return state.timers[wid]; }
+function startTimer(wid) { const t=getTimer(wid); if(t.running) return; t.running=true; t.intervalId=setInterval(()=>{t.elapsed++;render();},1000); }
+function stopTimer(wid) { const t=getTimer(wid); clearInterval(t.intervalId); t.running=false; }
+function resetTimer(wid) { stopTimer(wid); const t=getTimer(wid); t.elapsed=0;t.locked=false;t.finalTime=0; }
+function render() {
+  const app=document.getElementById("app");
+  const filtered=WORKOUTS.filter(w=>{ if(state.filter==="All") return true; if(state.filter==="🌿 Outdoor") return w.tags.includes("outdoor"); return w.type===state.filter; });
+  const totalTracked=Object.keys(state.history).filter(id=>state.history[id]?.length>0).length;
+  const showRuckTip=["All","Ruck","🌿 Outdoor"].includes(state.filter);
+  app.innerHTML=`
+    ${state.historyModal!==null?renderModal(state.historyModal):""}
+    <div class="header"><div><div class="header-title">FIELD LOG</div><div class="header-sub">WORKOUT TRACKER</div></div>${totalTracked>0?`<div class="log-badge">${totalTracked} WORKOUTS TRACKED</div>`:""}</div>
+    <div class="filter-bar">${FILTERS.map(f=>`<button class="filter-btn ${state.filter===f?"active":""}" onclick="setFilter('${f}')">${f.toUpperCase()}</button>`).join("")}</div>
+    ${showRuckTip?`<div class="ruck-tip"><div class="ruck-tip-title">🎒 NEW TO RUCKING?</div><div class="ruck-tip-body">Start with a loaded backpack (20-30 lb). No fancy gear needed yet. Track by time + distance.</div></div>`:""}
+    <div class="card-list">${filtered.map(w=>renderCard(w)).join("")}</div>`;
+  const overlay=app.querySelector(".modal-overlay");
+  if(overlay) overlay.addEventListener("click",e=>{ if(e.target===overlay){state.historyModal=null;render();} });
+}
+function renderCard(w) {
+  const open=state.openId===w.id, color=COLORS[w.type]||"#555", hasHistory=(state.history[w.id]||[]).length>0, tags=w.tags.map(t=>TAG_ICONS[t]).join(" ");
+  return `<div class="card ${open?"open":""}" id="card-${w.id}">
+    <button class="card-header" onclick="toggleCard(${w.id})">
+      <div class="card-stripe" style="background:${color}"></div>
+      <div class="card-info"><div class="card-name-row"><span class="card-name">${w.name}</span><span class="card-type-badge" style="background:${color}22;color:${color}">${w.type.toUpperCase()}</span><span class="card-tags">${tags}</span></div><div class="card-desc">${w.desc}</div></div>
+      <div class="card-chevron-area">${hasHistory?'<div class="card-dot"></div>':""}<span class="card-chevron">${open?"▲":"▼"}</span></div>
+    </button>
+    ${open?`<div class="card-body">${w.notes?`<div class="card-notes">${w.notes}</div>`:""}${w.track==="time"?renderTimeTracker(w):""}${w.track==="rounds"?renderRoundsTracker(w):""}${w.track==="weight"?renderWeightTracker(w):""}${w.track==="ruck"?renderRuckTracker(w):""}<button class="history-btn" onclick="openHistory(${w.id})">📋 VIEW HISTORY ${(state.history[w.id]||[]).length>0?`(${state.history[w.id].length})`:""}</button></div>`:""}
+  </div>`;
+}
+function renderTimeTracker(w) {
+  const t=getTimer(w.id),display=t.locked?t.finalTime:t.elapsed,color=t.running?"#e63946":t.locked?"#2ec4b6":"#eee";
+  if(!state.weights[w.id]) state.weights[w.id]={};
+  return `<div class="tracker">${w.moves.filter(m=>m.u).map(m=>`<div class="field-row"><span class="field-lbl">${m.n}</span><div style="display:flex;align-items:center;gap:6px"><input class="num-input" type="number" value="${state.weights[w.id][m.n]!==undefined?state.weights[w.id][m.n]:(m.dw||"")}" onchange="setWeight(${w.id},'${m.n}',this.value)"/><span class="unit-lbl">${m.u}</span></div></div>`).join("")}
+    <div class="timer-display"><div class="timer-digits" style="color:${color}">${fmt(display)}</div>${t.locked?'<div class="logged-msg">LOGGED ✓</div>':""}</div>
+    <div class="btn-row">${!t.running&&!t.locked?`<button class="btn-primary" style="background:#e63946;color:#fff" onclick="timerStart(${w.id})">START</button>`:""}${t.running?`<button class="btn-primary" style="background:#2ec4b6;color:#000" onclick="timerDone(${w.id})">DONE</button>`:""}${(t.running||t.locked)?`<button class="btn-ghost" onclick="timerReset(${w.id})">↺</button>`:""}</div>
+  </div>`;
+}
+function renderRoundsTracker(w) {
+  if(!state.rounds[w.id]) state.rounds[w.id]={rounds:0,partial:0};
+  const r=state.rounds[w.id],t=getTimer("amrap-"+w.id),color=t.running?"#f4a261":"#555",dur=w.dur||20;
+  return `<div class="tracker"><div class="rounds-clock"><div class="rounds-cap">${dur} MIN CAP</div><div class="rounds-time" style="color:${color}">${fmt(t.elapsed)}</div><div style="display:flex;gap:8px;justify-content:center;margin-top:8px">${!t.running?`<button class="btn-primary" style="background:#f4a261;color:#000;padding:6px 16px;font-size:12px" onclick="amrapStart(${w.id})">START CLOCK</button>`:`<button class="btn-primary" style="background:#555;color:#fff;padding:6px 16px;font-size:12px" onclick="amrapStop(${w.id})">STOP</button>`}</div></div>
+    <div class="rounds-grid"><div class="rounds-col"><div class="col-hdr">ROUNDS</div><div class="counter-row"><button class="counter-btn" onclick="adjRounds(${w.id},-1,0)">-</button><span class="counter-val">${r.rounds}</span><button class="counter-btn" style="background:#f4a261;border:none;color:#000" onclick="adjRounds(${w.id},1,0)">+</button></div></div>
+    <div class="rounds-col"><div class="col-hdr">+ REPS</div><div class="counter-row"><button class="counter-btn" onclick="adjRounds(${w.id},0,-1)">-</button><span class="counter-val">${r.partial}</span><button class="counter-btn" style="background:#2ec4b6;border:none;color:#000" onclick="adjRounds(${w.id},0,1)">+</button></div></div></div>
+    ${(r.rounds>0||r.partial>0)?'<div class="logged-msg">LOGGED ✓</div>':""}</div>`;
+}
+function renderWeightTracker(w) {
+  const mov=w.moves[0];
+  if(!state.sets[w.id]) state.sets[w.id]=(w.sets||[]).map(reps=>({weight:mov.dw||"",reps,done:false}));
+  const sets=state.sets[w.id],allDone=sets.every(s=>s.done);
+  return `<div class="tracker"><div class="sets-grid"><div class="col-hdr">#</div><div class="col-hdr">WT (${mov.u})</div><div class="col-hdr">REPS</div><div></div>${sets.map((s,i)=>`<div class="set-num">${i+1}</div><input class="num-input" type="number" value="${s.weight}" style="opacity:${s.done?.4:1}" onchange="setSetField(${w.id},${i},'weight',this.value)"/><input class="num-input" type="number" value="${s.reps}" style="opacity:${s.done?.4:1}" onchange="setSetField(${w.id},${i},'reps',this.value)"/><button class="set-done-btn" style="background:${s.done?"#4895ef":"#1c1c1c"};border:${s.done?"none":"1px solid #2a2a2a"};color:${s.done?"#fff":"#444"}" onclick="toggleSet(${w.id},${i})">${s.done?"✓":"○"}</button>`).join("")}</div>${allDone?'<div class="logged-msg">ALL SETS DONE ✓</div>':""}</div>`;
+}
+function renderRuckTracker(w) {
+  if(!state.ruckData[w.id]) state.ruckData[w.id]={distance:"",packWeight:"",locked:false,finalTime:0};
+  const rd=state.ruckData[w.id],t=getTimer("ruck-"+w.id),display=rd.locked?rd.finalTime:t.elapsed,color=t.running?"#6a994e":rd.locked?"#2ec4b6":"#ccc";
+  return `<div class="tracker"><div class="ruck-setup"><div class="ruck-setup-title">RUCK SETUP</div>
+    <div class="field-row"><span class="field-lbl">Pack Weight</span><div style="display:flex;align-items:center;gap:6px"><input class="num-input" type="number" value="${rd.packWeight}" placeholder="-" onchange="setRuckField(${w.id},'packWeight',this.value)"/><span class="unit-lbl">lb</span></div></div>
+    <div class="field-row"><span class="field-lbl">Distance</span><div style="display:flex;align-items:center;gap:6px"><input class="num-input" type="number" value="${rd.distance}" placeholder="-" onchange="setRuckField(${w.id},'distance',this.value)"/><span class="unit-lbl">mi</span></div></div>
+    ${!rd.packWeight?'<div class="ruck-no-gear">No ruck yet? Leave blank and log time only.</div>':""}</div>
+    <div class="timer-display"><div class="timer-digits" style="color:${color}">${fmt(display)}</div>${rd.locked?'<div class="logged-msg">LOGGED ✓</div>':""}</div>
+    <div class="btn-row">${!t.running&&!rd.locked?`<button class="btn-primary" style="background:#6a994e;color:#fff" onclick="ruckStart(${w.id})">START RUCK</button>`:""}${t.running?`<button class="btn-primary" style="background:#2ec4b6;color:#000" onclick="ruckDone(${w.id})">DONE</button>`:""}${(t.running||rd.locked)?`<button class="btn-ghost" onclick="ruckReset(${w.id})">↺</button>`:""}</div></div>`;
+}
+function renderModal(wid) {
+  const w=WORKOUTS.find(x=>x.id===wid); if(!w) return "";
+  const color=COLORS[w.type]||"#555",hist=[...(state.history[wid]||[])].reverse();
+  return `<div class="modal-overlay"><div class="modal-sheet"><div class="modal-header"><div><div class="modal-title">${w.name}</div><div class="modal-subtitle" style="color:${color}">HISTORY - ${hist.length} ENTR${hist.length===1?"Y":"IES"}</div></div><button class="modal-close" onclick="closeHistory()">x</button></div>
+    ${hist.length===0?'<div class="modal-empty">NO ENTRIES YET</div>':`<div class="history-list">${hist.map(e=>`<div class="history-entry"><div class="entry-date">${e.date}</div>${e.time!=null?`<div class="entry-time" style="color:${color}">${fmt(e.time)}</div>`:""}${e.rounds!=null?`<div class="entry-time" style="color:${color}">${e.rounds}<span style="font-size:16px;color:#555">+${e.partial||0} reps</span></div>`:""}${e.weights&&Object.keys(e.weights).length>0?`<div class="entry-tags">${Object.entries(e.weights).filter(([,v])=>v).map(([k,v])=>`<span class="entry-tag">${k}: ${v} lb</span>`).join("")}</div>`:""}${e.sets?`<div class="entry-tags">${e.sets.filter(s=>s.done).map((s,j)=>`<span class="entry-tag">Set ${j+1}: ${s.weight}lb x ${s.reps}</span>`).join("")}</div>`:""}${e.distance?`<div class="entry-dist">${e.distance} mi${e.packWeight?` - ${e.packWeight} lb pack`:""}</div>`:""}</div>`).join("")}</div>`}
+  </div></div>`;
+}
+function setFilter(f){state.filter=f;render();}
+function toggleCard(id){state.openId=state.openId===id?null:id;render();}
+function openHistory(wid){state.historyModal=wid;render();}
+function closeHistory(){state.historyModal=null;render();}
+function setWeight(wid,name,val){if(!state.weights[wid])state.weights[wid]={};state.weights[wid][name]=val;}
+function timerStart(wid){startTimer(wid);}
+function timerDone(wid){const t=getTimer(wid);stopTimer(wid);t.finalTime=t.elapsed;t.locked=true;appendHistory(wid,{date:todayStr(),time:t.elapsed,weights:state.weights[wid]||{}});render();}
+function timerReset(wid){resetTimer(wid);render();}
+function amrapStart(wid){startTimer("amrap-"+wid);render();}
+function amrapStop(wid){stopTimer("amrap-"+wid);render();}
+function adjRounds(wid,dr,dp){if(!state.rounds[wid])state.rounds[wid]={rounds:0,partial:0};state.rounds[wid].rounds=Math.max(0,state.rounds[wid].rounds+dr);state.rounds[wid].partial=Math.max(0,state.rounds[wid].partial+dp);appendHistory(wid,{date:todayStr(),rounds:state.rounds[wid].rounds,partial:state.rounds[wid].partial});render();}
+function setSetField(wid,idx,field,val){state.sets[wid][idx][field]=val;}
+function toggleSet(wid,idx){state.sets[wid][idx].done=!state.sets[wid][idx].done;appendHistory(wid,{date:todayStr(),sets:state.sets[wid]});render();}
+function setRuckField(wid,field,val){if(!state.ruckData[wid])state.ruckData[wid]={distance:"",packWeight:"",locked:false,finalTime:0};state.ruckData[wid][field]=val;}
+function ruckStart(wid){startTimer("ruck-"+wid);render();}
+function ruckDone(wid){const t=getTimer("ruck-"+wid);stopTimer("ruck-"+wid);const rd=state.ruckData[wid];rd.finalTime=t.elapsed;rd.locked=true;appendHistory(wid,{date:todayStr(),time:t.elapsed,distance:rd.distance,packWeight:rd.packWeight});render();}
+function ruckReset(wid){resetTimer("ruck-"+wid);if(state.ruckData[wid]){state.ruckData[wid].locked=false;state.ruckData[wid].finalTime=0;}render();}
+loadHistory();
+render();
+</script>
+</body>
+</html>
